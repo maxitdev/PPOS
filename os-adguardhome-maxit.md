@@ -13,8 +13,9 @@ WebGUI bereit.
 > der OPNsense-WebGUI statt, sondern in der eigenen Weboberfläche von AdGuard
 > Home. Die OPNsense-Seite kennt nur zwei Schalter. Entsprechend liegt diese
 > Konfiguration auch nicht in der `config.xml`, sondern in
-> `/usr/local/AdGuardHome/AdGuardHome.yaml` – siehe
-> [Backup und Deinstallation](#backup-und-deinstallation).
+> `/usr/local/AdGuardHome/AdGuardHome.yaml`. Diese Datei lässt sich auf der
+> Konfigurationsseite und über die API herunterladen und wiederherstellen –
+> siehe [Konfigurationsdatei sichern und einspielen](#konfigurationsdatei-sichern-und-einspielen).
 
 ## Inhaltsverzeichnis
 
@@ -24,11 +25,12 @@ WebGUI bereit.
 4. [Felder der Konfigurationsseite](#felder-der-konfigurationsseite)
 5. [Betrieb neben Unbound und Dnsmasq](#betrieb-neben-unbound-und-dnsmasq)
 6. [Dienststeuerung und Cron](#dienststeuerung-und-cron)
-7. [Dateien und Pfade](#dateien-und-pfade)
-8. [Updates](#updates)
-9. [Backup und Deinstallation](#backup-und-deinstallation)
-10. [Berechtigungen](#berechtigungen)
-11. [Support / Fehlerbehebung](#support--fehlerbehebung)
+7. [Konfigurationsdatei sichern und einspielen](#konfigurationsdatei-sichern-und-einspielen)
+8. [Dateien und Pfade](#dateien-und-pfade)
+9. [Updates](#updates)
+10. [Backup und Deinstallation](#backup-und-deinstallation)
+11. [Berechtigungen](#berechtigungen)
+12. [Support / Fehlerbehebung](#support--fehlerbehebung)
 
 ---
 
@@ -132,12 +134,71 @@ das Blockieren von DoH/DoT-Resolvern – letzteres deckt das Plugin
   **System → Einstellungen → Cron** als geplanter Job hinterlegen, z. B. für
   einen nächtlichen Neustart.
 
+## Konfigurationsdatei sichern und einspielen
+
+Unter **Services → Adguardhome → General** steht im Kasten
+**Configuration file** die `AdGuardHome.yaml` zum Herunterladen und
+Wiederherstellen bereit. Ein Zugang per SSH ist dafür nicht nötig.
+
+> **Wichtiger Hinweis:** Die Datei enthält neben Filtern, Regeln, Clients und
+> DNS-Rewrites auch die Benutzerkonten von AdGuard Home samt bcrypt-Hash des
+> Administrator-Passworts. Heruntergeladene Dateien sind entsprechend
+> vertraulich zu behandeln.
+
+- **Download** liefert die aktuelle Datei als `AdGuardHome.yaml`. Wurde
+  AdGuard Home noch nicht eingerichtet, gibt es noch keine Datei; die Seite
+  meldet das.
+- **Restore** fragt nach einer Datei und nach einer Bestätigung. Danach läuft
+  Folgendes ab:
+  1. AdGuard Home prüft die Datei (`AdGuardHome --check-config`). Lehnt es sie
+     ab, bleibt alles unverändert und die Seite zeigt die Fehlermeldung.
+  2. Läuft der Dienst, wird er angehalten. Das ist nötig, weil AdGuard Home
+     beim Beenden seine Konfiguration zurückschreibt und eine vorher
+     ausgetauschte Datei sonst überschreiben würde.
+  3. Die bisherige Datei bleibt als `AdGuardHome.yaml.bak` erhalten, die neue
+     ersetzt sie (Rechte `600`).
+  4. Lief der Dienst vorher, wird er wieder gestartet.
+- **Restore previous** spielt `AdGuardHome.yaml.bak` nach demselben Ablauf
+  zurück, also die Konfiguration vor dem letzten Restore. Die ersetzte Datei
+  wird dabei ihrerseits zur neuen `AdGuardHome.yaml.bak`; ein zweiter Klick
+  macht den ersten also wieder rückgängig. Gibt es noch keine
+  `AdGuardHome.yaml.bak`, meldet die Seite das und ändert nichts.
+
+Ports, Benutzer und Upstreams kommen vollständig aus der eingespielten Datei.
+Stammt sie von einer anderen Firewall, gelten deren Admin-Port und deren
+Passwort.
+
+**Für Backup-Jobs über die API:**
+
+| Methode und Pfad | Wirkung | Berechtigung |
+|---|---|---|
+| `GET /api/adguardhome/export/download` | liefert `AdGuardHome.yaml` (`Content-Type: application/x-yaml`); gibt es keine Datei, kommt JSON mit `status` `error` | **Services: Adguardhome: Download configuration** oder **Services: Adguardhome** |
+| `POST /api/adguardhome/export/upload` | stellt die gesendete Datei wieder her (**Restore**); JSON `{"content": "<Inhalt der YAML-Datei>"}`, Antwort `{"status": "ok"}` bzw. `{"status": "error", "message": "…"}` | **Services: Adguardhome** |
+| `POST /api/adguardhome/export/restore` | stellt `AdGuardHome.yaml.bak` wieder her (**Restore previous**), Antwort wie beim Upload | **Services: Adguardhome** |
+
+Ein Backup-Benutzer, der nur die Berechtigung **Services: Adguardhome:
+Download configuration** hat, kann die Datei abholen, aber weder Einstellungen
+ändern noch eine Datei wiederherstellen. Beispiel mit dem API-Schlüssel eines
+solchen Benutzers:
+
+```
+curl -k -u "<key>:<secret>" -o AdGuardHome.yaml      https://<firewall>/api/adguardhome/export/download
+```
+
+Auf der Kommandozeile der Firewall stehen dieselben Funktionen als
+configd-Aktionen bereit: `configctl adguardhome export` gibt die Datei aus,
+`configctl adguardhome import` stellt eine unter
+`/usr/local/AdGuardHome/AdGuardHome.yaml.import` abgelegte Datei nach dem
+oben beschriebenen Ablauf wieder her, `configctl adguardhome restore`
+entspricht **Restore previous**.
+
 ## Dateien und Pfade
 
 | Pfad | Inhalt |
 |---|---|
 | `/usr/local/AdGuardHome/AdGuardHome` | Das mitgelieferte AdGuard-Home-Binary. |
 | `/usr/local/AdGuardHome/AdGuardHome.yaml` | Die komplette AdGuard-Home-Konfiguration (Filter, Clients, Benutzer, Upstreams). Wird beim ersten Start bzw. vom Einrichtungsassistenten angelegt. |
+| `/usr/local/AdGuardHome/AdGuardHome.yaml.bak` | Die Konfiguration vor dem letzten Restore. |
 | `/usr/local/AdGuardHome/data/` | Laufzeitdaten: Statistiken, Query-Log, heruntergeladene Filterlisten. |
 | `/usr/local/etc/rc.d/adguardhome` | rc-Skript (startet das Binary über `daemon(8)`). |
 | `/etc/rc.conf.d/adguardhome` | Aus der OPNsense-Konfiguration generiert, enthält nur `adguardhome_enable`. |
@@ -160,8 +221,9 @@ diese Paketierung nicht abgestimmt.
 - Ein OPNsense-Konfigurationsbackup (`config.xml`) enthält von diesem Plugin
   nur die beiden Schalter **Enable** und **Primary DNS** – nicht die
   AdGuard-Home-Konfiguration selbst. Wer Filterlisten, Clients und Benutzer
-  sichern will, muss `/usr/local/AdGuardHome/AdGuardHome.yaml` separat sichern
-  (z. B. per SCP).
+  sichern will, muss `/usr/local/AdGuardHome/AdGuardHome.yaml` separat sichern,
+  am einfachsten über **Download** oder die API (siehe
+  [Konfigurationsdatei sichern und einspielen](#konfigurationsdatei-sichern-und-einspielen)).
 - Bei der Deinstallation des Plugins wird das Verzeichnis
   `/usr/local/AdGuardHome/` **vollständig entfernt**. Damit gehen Konfiguration,
   Statistiken und Query-Log verloren. Vor einer Deinstallation – auch vor einer
@@ -173,7 +235,16 @@ diese Paketierung nicht abgestimmt.
 Alle Seiten und die zugehörige API liegen unter den Mustern `ui/adguardhome/*`
 bzw. `api/adguardhome/*`. Damit weitere Benutzer/Benutzergruppen (neben `root`)
 darauf zugreifen dürfen, muss ihnen unter **System → Zugriff → Gruppen** die
-Berechtigung **"Services: Adguardhome"** zugewiesen werden. Die Anmeldung an
+Berechtigung **"Services: Adguardhome"** zugewiesen werden.
+
+Für Backup-Jobs gibt es zusätzlich die Berechtigung **"Services: Adguardhome:
+Download configuration"**. Sie erlaubt nur
+`api/adguardhome/export/download`, also das Herunterladen der
+`AdGuardHome.yaml`, und weder das Ändern der Einstellungen noch das
+Wiederherstellen einer Datei. Da die Datei den Passwort-Hash des AdGuard-Home-Administrators
+enthält, sollte auch diese Berechtigung nur gezielt vergeben werden.
+
+Die Anmeldung an
 der AdGuard-Home-Weboberfläche selbst ist davon unabhängig und wird in AdGuard
 Home verwaltet.
 
@@ -194,6 +265,9 @@ Home verwaltet.
   werden. Diagnoseinformationen liefern das Dashboard und das Query-Log von
   AdGuard Home selbst; alternativ lässt sich in der `AdGuardHome.yaml` über den
   Schlüssel `log_file` eine Logdatei setzen.
+- **Nach einem Restore startet AdGuard Home nicht:** Die wiederhergestellte
+  Datei verwendet vermutlich einen belegten Port. **Restore previous** stellt
+  die Konfiguration von vor dem Restore wieder her.
 - **Admin-Oberfläche nicht erreichbar, Port vergessen:** Der konfigurierte Port
   steht in `/usr/local/AdGuardHome/AdGuardHome.yaml` (Abschnitt `http`).
 - **Clients umgehen den Filter:** Prüfen, ob die Clients per DHCP tatsächlich
