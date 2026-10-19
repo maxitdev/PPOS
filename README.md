@@ -5,8 +5,8 @@ Die **Professional Plugins** der
 um Funktionen, die in der freien Distribution nicht enthalten sind: zentrale
 Verwaltung mehrerer Firewalls, Anwendungsblockierung inklusive Auswertung,
 Apache als Reverse Proxy mit Web Application Firewall, DNS-Filterung,
-Blocklisten für den Webproxy, TLS-Aufbruch, Netzwerkscans, Mailversand für
-Reports und einiges mehr.
+Blocklisten für den Webproxy, TLS-Aufbruch, Netzwerkscans, ein Executive
+Report mit Mailversand und einiges mehr.
 
 Verteilt werden die Plugins über ein eigenes Firmware-Repository
 (`os-maxit`), das sich in jeder OPNsense-Installation hinterlegen lässt.
@@ -72,7 +72,8 @@ Plugins** in der Liste der verfügbaren Pakete.
    Plugins erscheinen erst dann.
 
 Abhängigkeiten (FreeBSD-Pakete wie `nmap`, `smtp-cli`, `apache24`, `sslproxy`
-oder das Plugin `os-squid`) zieht OPNsense automatisch mit.
+oder Plugins wie `os-squid` und `os-smtp-cli-maxit`) zieht OPNsense
+automatisch mit.
 
 ## Plugins und Handbücher
 
@@ -85,9 +86,11 @@ Für jedes der folgenden Plugins existiert ein vollständiges deutsches Handbuch
 | App Blocking | `os-appblocking-maxit` | Fertige Suricata-Regelsätze für bekannte Anwendungen (ChatGPT, Netflix, TikTok, Steam, öffentliche DoH/DoT-Resolver u. v. m.), kategorieweise auswählbar, plus die Auswertungsseite **Analyze Threats**. | [os-appblocking-maxit.md](os-appblocking-maxit.md) |
 | Apache | `os-apache-maxit` | Apache als HTTP-Server, Reverse Proxy und Lastverteiler mit TLS-Terminierung, Security-Headern, Basic Auth, IP-ACLs und mod_security2-WAF (OWASP CRS). | [os-apache-maxit.md](os-apache-maxit.md) · [WAF im Detail](os-apache-maxit-waf.md) |
 | AdGuard Home | `os-adguardhome-maxit` | AdGuard Home als netzwerkweiter DNS-Filter (Werbung, Tracker, Malware-Domains, Parental Control) mit eigener Weboberfläche, als OPNsense-Dienst eingebunden. | [os-adguardhome-maxit.md](os-adguardhome-maxit.md) |
-| Squid Blocklist | `os-proxybl-maxit` | Kategorieweise Blocklisten (Malware, Phishing, Ransomware, Werbung, Betrug, Piraterie) für den Squid-Webproxy, zugeordnet über Netzgruppen und Policies inkl. Whitelists. | [os-proxybl-maxit.md](os-proxybl-maxit.md) |
+| Squid Blocklist | `os-proxybl-maxit` | Kategorieweise Blocklisten (Malware, Phishing, Ransomware, Werbung, Betrug, Piraterie) für den Squid-Webproxy, zugeordnet über Netzgruppen und Policies inkl. Whitelists, plus eigene Listen von beliebigen URLs (Remote Access Lists). | [os-proxybl-maxit.md](os-proxybl-maxit.md) |
 | SSLproxy | `os-sslproxy-maxit` | Transparenter TLS-Aufbruch (Nachfolger von SSLsplit) mit vollständiger Optionsabdeckung: Protokoll-Listener, Zertifikatsbehandlung, Benutzerauthentifizierung, Spiegelung auf ein IDS und Mitschnitt (Content-/PCAP-Log). | [os-sslproxy-maxit.md](os-sslproxy-maxit.md) |
+| OPN-Arp | `os-opnarp-maxit` | ARP- und NDP-Monitor: Verzeichnis aller Geräte im Netz mit Hersteller, Adressen und Interface, Meldung neuer Geräte, geänderter MAC-Adressen und Flip-Flops (Hinweis auf ARP-Spoofing) in eigener Logdatei und optional per E-Mail. | [os-opnarp-maxit.md](os-opnarp-maxit.md) |
 | Nmap | `os-nmap` | Nmap-Scans (Ping/SYN/UDP sowie NSE-Schwachstellenscans) direkt aus der WebGUI, asynchron mit Live-Ausgabe und optionalem E-Mail-Bericht. | [os-nmap.md](os-nmap.md) |
+| Executive Report | `os-reports-maxit` | Tages-, Wochen- oder Monatsbericht unter **Reporting**: blockierte Pakete, IPS-Alarme, Datenverkehr, Interface-Fehler, Anwendungen, Webproxy, DNS, VPN, Anmeldungen, Konfigurationsänderungen und Systemzustand, dazu ein OpenVPN-Sitzungsprotokoll mit Statistik je Benutzer. Versand als HTML-Mail auf Deutsch oder Englisch, optional pseudonymisiert. | [os-reports-maxit.md](os-reports-maxit.md) |
 | SMTP-Send | `os-smtp-cli-maxit` | Ausgehender SMTP-Relay (Smarthost, STARTTLS/TLS, Auth) ohne lokalen Mailserver. Andere Plugins versenden ihre Reports darüber. | [os-smtp-cli-maxit.md](os-smtp-cli-maxit.md) |
 
 Das Apache-Handbuch liegt zusätzlich auf Englisch vor:
