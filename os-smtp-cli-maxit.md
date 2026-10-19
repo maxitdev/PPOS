@@ -107,6 +107,33 @@ $backend->configdRun(sprintf(
   vertragen sich schlechter mit ungewöhnlich langen Einzelzeilen als ein
   Anhang mit eigener Kodierung.
 
+### HTML-Mails
+
+Für Berichte, die als Seite gelesen werden sollen (z. B. der Executive
+Report aus `os-reports-maxit`), gibt es ab Version 1.2 die Schwesteraktion
+`sendhtml`.
+Der HTML-Text wird dabei nicht als Parameter, sondern als Datei übergeben,
+weil ein Bericht viel größer ist, als eine configd-Befehlszeile tragen
+sollte:
+
+```php
+$backend->configdRun(sprintf(
+    'smtpcli sendhtml %s %s %s %s',
+    escapeshellarg($recipient),
+    base64_encode($subject),
+    escapeshellarg($htmlPath),
+    $textPath !== '' ? escapeshellarg($textPath) : '-'
+));
+```
+
+- `$htmlPath` – Datei mit dem vollständigen HTML-Dokument.
+- `$textPath` – optionale Textfassung oder `"-"`. Ist sie angegeben, geht
+  die Mail als `multipart/alternative` hinaus, und Mailclients ohne
+  HTML-Anzeige zeigen den Text.
+- Beide Dateien müssen unterhalb von `/var/cache` oder `/tmp` liegen.
+  Damit lässt sich über diese Aktion keine beliebige Datei der Firewall
+  verschicken.
+
 Ist dieses Plugin nicht installiert, aktiviert oder konfiguriert, schlägt
 der Aufruf einfach fehl (Exit-Code ungleich 0, Fehlertext auf
 stdout/stderr) – ein aufrufendes Plugin sollte diesen Fehlschlag als
